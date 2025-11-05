@@ -1,11 +1,16 @@
 
 name: Scan Docker Image for Vulnerabilities
 
+
 on:
   workflow_call:
     inputs:
       image:
         description: "Docker image to scan (e.g., my-app:latest)"
+        required: true
+        type: string
+      image_artifact:
+        description: "Artifact name for the Docker image tar file"
         required: true
         type: string
 
@@ -17,13 +22,14 @@ jobs:
   scan_and_upload:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.image_artifact }}
 
-      - name: Get Git Hash (if not provided)
-        id: get_hash
-        run: echo "git_hash=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
-      
+      - name: Load Docker image
+        run: docker load -i sample-flask-test-latest.tar
+
       - name: install Trivy
         run: |
           sudo apt-get install wget gnupg
@@ -31,7 +37,7 @@ jobs:
           echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
           sudo apt-get update
           sudo apt-get install trivy
-      
+
       - name: Scan app image for vulnerabilities
-        run: trivy image ${{ inputs.image }}
+        run: trivy image --input ${{ inputs.image_artifact }}
 
