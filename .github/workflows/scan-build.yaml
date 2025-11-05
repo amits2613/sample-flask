@@ -39,5 +39,5 @@ jobs:
           sudo apt-get install trivy
 
       - name: Scan app image for vulnerabilities
-        run: trivy image --input ${{ inputs.image_artifact }}
+        run: trivy image --input sample-flask-test-latest.tar
 
