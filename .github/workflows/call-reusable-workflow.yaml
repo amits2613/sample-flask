@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      image_name: ${{ steps.set-image-name.outputs.image_name }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -20,28 +22,12 @@ jobs:
         run: |
           docker build -t sample-flask:test-latest .
 
-      - name: Save Docker image as tar
-        run: docker save -o sample-flask-test-latest.tar sample-flask:test-latest
-
-      - name: Upload Docker image artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sample-flask-test-latest
-          path: sample-flask-test-latest.tar
+      - name: Set image name output
+        id: set-image-name
+        run: echo "image_name=sample-flask:test-latest" >> $GITHUB_OUTPUT
 
   scan:
     needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: sample-flask-test-latest
-
-      - name: Load Docker image
-        run: docker load -i sample-flask-test-latest.tar
-
-      - name: Call scan reusable workflow
-        uses: amits2613/sample-flask/.github/workflows/scan-build.yaml@trivy-scan
-        with:
-          image: sample-flask:test-latest
+    uses: amits2613/sample-flask/.github/workflows/scan-build.yaml@trivy-scan
+    with:
+      image: ${{ needs.build.outputs.image_name }}
