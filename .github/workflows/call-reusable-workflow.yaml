@@ -16,15 +16,32 @@ jobs:
         id: get_hash
         run: echo "git_hash=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Build and release 
+      - name: Build and release
         run: |
           docker build -t sample-flask:test-latest .
 
-      - name: Set image repo output
-        id: vars
-        run: echo "image_repo=sample-flask:test-latest" >> $GITHUB_OUTPUT
+      - name: Save Docker image as tar
+        run: docker save -o sample-flask-test-latest.tar sample-flask:test-latest
 
-      - name: Scan ${{ matrix.service }} image
-        uses: amits2613/sample-flask/.github/workflows/scan-build.yaml@main
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
         with:
-          image: ${{ steps.vars.outputs.image_repo }}
+          name: sample-flask-test-latest
+          path: sample-flask-test-latest.tar
+
+  scan:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sample-flask-test-latest
+
+      - name: Load Docker image
+        run: docker load -i sample-flask-test-latest.tar
+
+      - name: Call scan reusable workflow
+        uses: amits2613/sample-flask/.github/workflows/scan-build.yaml@trivy-scan
+        with:
+          image: sample-flask:test-latest
