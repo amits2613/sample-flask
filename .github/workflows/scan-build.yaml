@@ -1,0 +1,37 @@
+
+name: Scan Docker Image for Vulnerabilities
+
+on:
+  workflow_call:
+    inputs:
+      image:
+        description: "Docker image to scan (e.g., my-app:latest)"
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  scan_and_upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Git Hash (if not provided)
+        id: get_hash
+        run: echo "git_hash=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
+      
+      - name: install Trivy
+        run: |
+          sudo apt-get install wget gnupg
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+      
+      - name: Scan app image for vulnerabilities
+        run: trivy image ${{ inputs.image }}
+
