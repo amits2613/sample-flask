@@ -25,6 +25,6 @@ jobs:
         run: echo "image_repo=sample-flask:test-latest" >> $GITHUB_OUTPUT
 
       - name: Scan ${{ matrix.service }} image
-        uses: .github/workflows/scan-build.yaml@trivy-scan
+        uses: ./.github/workflows/scan-build.yaml@main
         with:
           image: ${{ steps.vars.outputs.image_repo }}
